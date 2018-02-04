@@ -4,17 +4,32 @@ from xml.etree import ElementTree
 from bs4 import BeautifulSoup
 
 
-def _treat_parag(tag):
+def _handler_parag(tag):
+    """
+    Function to treat the 'p' tag
+    :param bs4.element.Tag tag: The paragraph tag
+    :return dict: A dictionary with 'text' type and content
+    """
     if not tag.text.replace('\t', '').replace('\xa0', '').strip('\n'):
         return
     return dict(type='text', content=tag.text.replace('\t', '').replace('\xa0', '').strip('\n'))
 
 
-def _treat_img(tag):
+def _handler_img(tag):
+    """
+    Function to treat the 'img' tag
+    :param bs4.element.Tag tag: The image tag
+    :return dict: A dictionary with 'image' type and image url
+    """
     return dict(type='image', content=tag['src'])
 
 
-def _treat_ul(tag):
+def _handler_ul(tag):
+    """
+    Function to treat the 'ul' tag
+    :param bs4.element.Tag tag: The unordered marker tag
+    :return dict: A dictionary with 'links' type and a list with all links
+    """
     result = dict(type='links', source=[])
     for link in tag.find_all('a'):
         result['source'].append(link['href'])
@@ -22,10 +37,11 @@ def _treat_ul(tag):
     return result
 
 
-TREAT_TAGS = {
-    'p': _treat_parag,
-    'img': _treat_img,
-    'ul': _treat_ul
+# Dictionary with functions having the tag.name as key and his handler as value
+HANDLER_TAGS = {
+    'p': _handler_parag,
+    'img': _handler_img,
+    'ul': _handler_ul
 }
 
 
@@ -33,11 +49,11 @@ def _tag_to_dict(element):
     """
     Method to categorize the elements from description
     :param bs4.element.Tag element: The element tag that must have the info extracted
-    :return dict: A dictionary with all info treated
+    :return dict: A dictionary with all info treated for that tag
     """
     if not element.name:
         return
-    return TREAT_TAGS.get(element.name)(element) if TREAT_TAGS.get(element.name) else None
+    return HANDLER_TAGS.get(element.name)(element) if HANDLER_TAGS.get(element.name) else None
 
 
 def treat_description(description):
@@ -60,11 +76,8 @@ def main():
     # Making the request to the feed URL
     feed_data = requests.get('http://revistaautoesporte.globo.com/rss/ultimas/feed.xml')
 
-    # Transforming the text in a xml object
-    tree = ElementTree.ElementTree(ElementTree.fromstring(feed_data.text))
-
-    # Getting XML root
-    root = tree.getroot()
+    # Transforming the text in a xml object and getting his root
+    root = ElementTree.ElementTree(ElementTree.fromstring(feed_data.text)).getroot()
 
     # Initiating the result json
     final = {
